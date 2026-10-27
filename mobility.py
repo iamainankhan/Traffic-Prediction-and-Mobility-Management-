@@ -95,7 +95,7 @@ def travel_time(volume, capacity, free_flow_minutes):
 # ---------------------------------------------------------------------
 # STEP 4: HOW MUCH TRAFFIC SHOULD TAKE THE ALTERNATE ROUTE?
 #   Try every diversion share from 0% to 50% and keep the one with the
-#   SHORTEST AVERAGE TRAVEL TIME for all drivers.
+#   SHORTEST AVERAGE TRAVEL TIME for drivers.
 # ---------------------------------------------------------------------
 def best_diversion(volume, main_capacity):
     best = None
