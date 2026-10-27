@@ -1,7 +1,3 @@
-"""
-forecast.py  -  shared helper functions for the FORECASTING part.
-Used by traffic_app.py and mobility_management.py so the same code is not repeated.
-"""
 import json
 import numpy as np
 import pandas as pd
@@ -29,9 +25,8 @@ def load_hourly_data(path=DATA_FILE):
 
     print(f"Loading dataset: {path}")
 
-    # ---------------------------------------------------------------
-    # 1. Read dataset
-    # ---------------------------------------------------------------
+
+    # 1. Read Dataset
     raw = pd.read_csv(path)
 
     print("Dataset shape:", raw.shape)
