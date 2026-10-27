@@ -70,7 +70,7 @@ with tab_predict:
                    "Please choose another date/hour.")
         st.stop()
 
-    # ---- Step 2 (optional): the user edits the input ----
+    # ---- Step 2 (optional): the user edits the input ---
     if edit_mode:
         st.subheader("Input: last 48 hours (editable)")
         st.write("Double-click a cell to change it. Example: lower `traffic_volume` to simulate an accident, "
