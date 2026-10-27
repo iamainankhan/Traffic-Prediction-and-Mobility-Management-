@@ -7,10 +7,7 @@ from tensorflow.keras import layers, models, callbacks
 
 tf.keras.utils.set_random_seed(42)          # same results every run
 
-
-# =====================================================================
-# STEP 1: SETTINGS
-# =====================================================================
+# 1. Settings
 LOOKBACK = 48      # how many past hours the model sees
 HORIZON  = 6       # how many future hours the model predicts
 EPOCHS   = \
@@ -21,10 +18,7 @@ TARGET   = "traffic_volume"
 URL   = "https://archive.ics.uci.edu/static/public/492/metro+interstate+traffic+volume.zip"
 LOCAL = "Metro_Interstate_Traffic_Volume.csv"   # optional: put the CSV next to this file
 
-
-# =====================================================================
-# STEP 2: LOAD THE DATASET
-# =====================================================================
+# 2. Loading dataset
 def load_raw_data():
     """Read the CSV from disk if present, otherwise download it from UCI."""
     for path in (LOCAL, LOCAL + ".gz"):
@@ -41,10 +35,7 @@ raw = load_raw_data()
 raw["date_time"] = pd.to_datetime(raw["date_time"])
 print("Raw dataset:", raw.shape[0], "rows")
 
-
-# =====================================================================
-# STEP 3: CLEAN THE DATA
-# =====================================================================
+# 3. Data cleaning
 # Problems in this dataset: duplicate timestamps, missing hours,
 # sensor errors (temperature = 0 Kelvin) and one absurd rain value.
 raw = raw.sort_values("date_time")
@@ -75,12 +66,9 @@ longest  = good_row.groupby(block_id).sum().idxmax()
 df = df[good_row & (block_id == longest)].copy()
 print(f"Using {len(df)} continuous hours: {df.index[0]}  ->  {df.index[-1]}")
 
-
-# =====================================================================
-# STEP 4: FEATURE ENGINEERING (time features)
-# =====================================================================
-# Hour 23 and hour 0 are close in time but far as numbers (23 vs 0).
-# Sine/cosine puts them next to each other on a circle, so the model understands "cycles".
+# 4. Feature engineering
+# hour 23 and hour 0 are close in time but far as numbers (23 vs 0).
+# sine/cosine puts them next to each other on a circle, so the model understands "cycles".
 hour, day, month = df.index.hour, df.index.dayofweek, df.index.month
 df["hour_sin"],  df["hour_cos"]  = np.sin(2*np.pi*hour/24),  np.cos(2*np.pi*hour/24)
 df["day_sin"],   df["day_cos"]   = np.sin(2*np.pi*day/7),    np.cos(2*np.pi*day/7)
@@ -90,10 +78,7 @@ df["is_weekend"] = (day >= 5).astype(int)
 target_col = df.columns.get_loc(TARGET)          # position of traffic_volume column
 print("Features used:", list(df.columns))
 
-
-# =====================================================================
-# STEP 5: SPLIT (by time!) AND SCALE
-# =====================================================================
+# 5. Data split
 # We never shuffle time series: train = past, validation = middle, test = future.
 n = len(df)
 train_df = df.iloc[: int(n * 0.70)]
@@ -114,10 +99,7 @@ def to_vehicles(scaled):
     """Convert scaled traffic back to real 'vehicles per hour'."""
     return scaled * std[TARGET] + mean[TARGET]
 
-
-# =====================================================================
-# STEP 6: SLIDING WINDOWS
-# =====================================================================
+# 6. Sliding window
 # One example = (past 48 hours of all features)  ->  (next 6 hours of traffic)
 def make_windows(data):
     X, y = [], []
@@ -132,10 +114,7 @@ X_test,  y_test  = make_windows(test)
 input_shape = (LOOKBACK, X_train.shape[-1])
 print(f"Windows -> train {len(X_train)}, validation {len(X_val)}, test {len(X_test)}")
 
-
-# =====================================================================
-# STEP 7: THE 5 MODELS
-# =====================================================================
+# 7. All 5 Models
 # All models take the same input and output 6 numbers (the next 6 hours).
 
 def build_mlp():
@@ -192,10 +171,7 @@ def build_cnn_lstm():
 MODEL_BUILDERS = {"MLP": build_mlp, "1D-CNN": build_cnn, "LSTM": build_lstm,
                   "GRU": build_gru, "CNN-LSTM": build_cnn_lstm}
 
-
-# =====================================================================
-# STEP 8: TRAIN ALL MODELS
-# =====================================================================
+# 8. Training all models
 trained, histories, train_seconds = {}, {}, {}
 
 for name, builder in MODEL_BUILDERS.items():
@@ -213,10 +189,7 @@ for name, builder in MODEL_BUILDERS.items():
     train_seconds[name] = time.time() - start
     trained[name], histories[name] = model, history.history
 
-
-# =====================================================================
-# STEP 9: EVALUATE AND COMPARE
-# =====================================================================
+# 9. Evaluation and comparing
 def metrics(y_true, y_pred):
     """Four standard forecasting errors, all in real units (vehicles/hour)."""
     error = y_pred - y_true
@@ -251,9 +224,7 @@ print(results.sort_values("Test MAE").to_string())
 results.to_csv("model_comparison_results.csv")
 
 
-# =====================================================================
-# STEP 10: CHOOSE THE BEST MODEL AND EXPLAIN WHY
-# =====================================================================
+# 10 Best Model and why
 # Rule: the best model is the one with the LOWEST VALIDATION MAE.
 # (We choose on validation data, then report on test data -> an honest, unbiased score.)
 deep = results.drop(index="Seasonal Naive")
@@ -283,10 +254,7 @@ print(f"6. Cost: {results.loc[best,'Parameters']:,.0f} parameters, trained in {r
 
 trained[best].save("best_traffic_model.keras")
 
-
-# =====================================================================
-# STEP 11: DIAGRAMS
-# =====================================================================
+# 11. Diagrams
 COLORS = {"Seasonal Naive": "grey", "MLP": "tab:orange", "1D-CNN": "tab:green",
           "LSTM": "tab:blue", "GRU": "tab:red", "CNN-LSTM": "tab:purple"}
 order = results.sort_values("Test MAE").index.tolist()
